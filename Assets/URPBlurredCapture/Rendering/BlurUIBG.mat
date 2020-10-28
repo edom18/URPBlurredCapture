@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: BlurUIBG
-  m_Shader: {fileID: 4800000, guid: 8d6d7d0c7f1b8b24da7b5898f89f98cf, type: 3}
+  m_Shader: {fileID: 4800000, guid: 2b793cc9344218040b72fe5e5db287e8, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0

@@ -53,4 +53,4 @@ MonoBehaviour:
   _shader: {fileID: 4800000, guid: 1c2f07f02d24648478368c3d6b168eeb, type: 3}
   _offset: 3
   _blur: 1000
-  _renderPassEvent: 300
+  _renderPassEvent: 400
