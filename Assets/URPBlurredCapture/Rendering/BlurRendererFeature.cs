@@ -20,7 +20,7 @@ public class BlurRendererFeature : ScriptableRendererFeature
 
         if (_grabBluredTexturePass == null)
         {
-            BlurredResult = new RenderTexture(Screen.width / 2, Screen.height / 2, 0);
+            BlurredResult = new RenderTexture(Screen.width, Screen.height, 0);
             BlurredResult.name = "Blurred Result";
             BlurredResult.Create();
             

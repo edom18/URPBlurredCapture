@@ -16,8 +16,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
 
     private float[] _weights = new float[10];
 
-    private int _blurredID1 = 0;
-    private int _blurredID2 = 0;
+    private int _blurredTempID = 0;
     private int _weightsID = 0;
     private int _offsetsID = 0;
     private int _grabBlurTextureID = 0;
@@ -29,8 +28,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
 
         _resultTarget = new RenderTargetIdentifier(BlurRendererFeature.BlurredResult);
 
-        _blurredID1 = Shader.PropertyToID("_BlurTemp1");
-        _blurredID2 = Shader.PropertyToID("_BlurTemp2");
+        _blurredTempID = Shader.PropertyToID("_BlurTemp");
         _weightsID = Shader.PropertyToID("_Weights");
         _offsetsID = Shader.PropertyToID("_Offsets");
         _grabBlurTextureID = Shader.PropertyToID("_GrabBlurTexture");
@@ -75,24 +73,18 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
     {
         CommandBuffer buf = CommandBufferPool.Get(NAME);
 
-        // ref CameraData camData = ref renderingData.cameraData;
-        CameraData camData = renderingData.cameraData;
+        ref CameraData camData = ref renderingData.cameraData;
 
         int width = camData.camera.scaledPixelWidth;
         int height = camData.camera.scaledPixelHeight;
 
-        var target = (camData.targetTexture != null)
-            ? new RenderTargetIdentifier(camData.targetTexture)
-            : BuiltinRenderTextureType.CameraTarget;
+        var target = (camData.targetTexture != null) ? new RenderTargetIdentifier(camData.targetTexture) : BuiltinRenderTextureType.CameraTarget;
 
         int hw = width; // / 2;
         int hh = height; // / 2;
 
-        // 半分の解像度で2枚のRender Textureを生成
-        // buf.GetTemporaryRT(_blurredID1, hw, hh, 0, FilterMode.Bilinear);
-        buf.GetTemporaryRT(_blurredID2, hw, hh, 0, FilterMode.Bilinear);
+        buf.GetTemporaryRT(_blurredTempID, hw, hh, 0, FilterMode.Bilinear);
 
-        // // 半分にスケールダウンしてコピー
         buf.Blit(target, _resultTarget);
 
         float x = _offset / width;
@@ -102,13 +94,11 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
 
         for (int i = 0; i < 2; i++)
         {
-            // 横方向のブラー
             buf.SetGlobalVector(_offsetsID, new Vector4(x, 0, 0, 0));
-            Blit(buf, _resultTarget, _blurredID2, _material);
+            Blit(buf, _resultTarget, _blurredTempID, _material);
 
-            // 縦方向のブラー
             buf.SetGlobalVector(_offsetsID, new Vector4(0, y, 0, 0));
-            Blit(buf, _blurredID2, _resultTarget, _material);
+            Blit(buf, _blurredTempID, _resultTarget, _material);
         }
 
         buf.SetGlobalTexture(_grabBlurTextureID, _resultTarget);
