@@ -10,7 +10,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
 
     private Material _material = null;
     private RenderTargetIdentifier _currentTarget = default;
-    private RenderTargetIdentifier _target = default;
+    private RenderTargetIdentifier _resultTarget = default;
     private float _offset = 0;
     private float _blur = 0;
 
@@ -26,6 +26,8 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
     {
         renderPassEvent = passEvent;
         _material = new Material(shader);
+        
+        _resultTarget = new RenderTargetIdentifier(BlurRendererFeature.BlurredResult);
 
         _blurredID1 = Shader.PropertyToID("_BlurTemp1");
         _blurredID2 = Shader.PropertyToID("_BlurTemp2");
@@ -58,35 +60,6 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         }
     }
 
-    private void BuildCommandBuffer(CommandBuffer buf, int width, int height)
-    {
-        int hw = width / 2;
-        int hh = height / 2;
-
-        // 半分の解像度で2枚のRender Textureを生成
-        buf.GetTemporaryRT(_blurredID1, hw, hh, 0, FilterMode.Bilinear);
-        buf.GetTemporaryRT(_blurredID2, hw, hh, 0, FilterMode.Bilinear);
-
-        // 半分にスケールダウンしてコピー
-        buf.Blit(_target, _blurredID1);
-
-        float x = _offset / width;
-        float y = _offset / height;
-
-        buf.SetGlobalFloatArray(_weightsID, _weights);
-
-        // 横方向のブラー
-        buf.SetGlobalVector(_offsetsID, new Vector4(x, 0, 0, 0));
-        buf.Blit(_blurredID1, _blurredID2, _material);
-
-        // 縦方向のブラー
-        buf.SetGlobalVector(_offsetsID, new Vector4(0, y, 0, 0));
-        buf.Blit(_blurredID2, _blurredID1, _material);
-
-        buf.SetGlobalTexture(_grabBlurTextureID, _blurredID1);
-    }
-
-
     public void SetParams(float offset, float blur)
     {
         _offset = offset;
@@ -104,18 +77,42 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         context.ExecuteCommandBuffer(buf);
         buf.Clear();
 
+        // ref CameraData camData = ref renderingData.cameraData;
         CameraData camData = renderingData.cameraData;
 
-        int w = camData.camera.scaledPixelWidth;
-        int h = camData.camera.scaledPixelHeight;
+        int width = camData.camera.scaledPixelWidth;
+        int height = camData.camera.scaledPixelHeight;
 
-        _target = (camData.targetTexture != null)
-            ? new RenderTargetIdentifier(camData.targetTexture)
-            : BuiltinRenderTextureType.CameraTarget;
-        BuildCommandBuffer(buf, w, h);
+        var target = (camData.targetTexture != null) ? new RenderTargetIdentifier(camData.targetTexture) : BuiltinRenderTextureType.CameraTarget;
+        
+        int hw = width;// / 2;
+        int hh = height;// / 2;
+        
+        // 半分の解像度で2枚のRender Textureを生成
+        // buf.GetTemporaryRT(_blurredID1, hw, hh, 0, FilterMode.Bilinear);
+        buf.GetTemporaryRT(_blurredID2, hw, hh, 0, FilterMode.Bilinear);
+        
+        // // 半分にスケールダウンしてコピー
+        buf.Blit(target, _resultTarget);
+        
+        float x = _offset / width;
+        float y = _offset / height;
+        
+        buf.SetGlobalFloatArray(_weightsID, _weights);
+        
+        // 横方向のブラー
+        buf.SetGlobalVector(_offsetsID, new Vector4(x, 0, 0, 0));
+        buf.Blit(_resultTarget, _blurredID2, _material);
+        
+        // 縦方向のブラー
+        buf.SetGlobalVector(_offsetsID, new Vector4(0, y, 0, 0));
+        buf.Blit(_blurredID2, _resultTarget, _material);
+        
+        buf.SetGlobalTexture(_grabBlurTextureID, _resultTarget);
+        
+        buf.SetRenderTarget(_currentTarget);
 
         context.ExecuteCommandBuffer(buf);
-        buf.Clear();
         CommandBufferPool.Release(buf);
     }
 }
