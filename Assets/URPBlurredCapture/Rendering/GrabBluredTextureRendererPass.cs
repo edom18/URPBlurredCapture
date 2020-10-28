@@ -26,7 +26,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
     {
         renderPassEvent = passEvent;
         _material = new Material(shader);
-        
+
         _resultTarget = new RenderTargetIdentifier(BlurRendererFeature.BlurredResult);
 
         _blurredID1 = Shader.PropertyToID("_BlurTemp1");
@@ -74,8 +74,6 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         CommandBuffer buf = CommandBufferPool.Get(NAME);
-        context.ExecuteCommandBuffer(buf);
-        buf.Clear();
 
         // ref CameraData camData = ref renderingData.cameraData;
         CameraData camData = renderingData.cameraData;
@@ -83,34 +81,37 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         int width = camData.camera.scaledPixelWidth;
         int height = camData.camera.scaledPixelHeight;
 
-        var target = (camData.targetTexture != null) ? new RenderTargetIdentifier(camData.targetTexture) : BuiltinRenderTextureType.CameraTarget;
-        
-        int hw = width;// / 2;
-        int hh = height;// / 2;
-        
+        var target = (camData.targetTexture != null)
+            ? new RenderTargetIdentifier(camData.targetTexture)
+            : BuiltinRenderTextureType.CameraTarget;
+
+        int hw = width; // / 2;
+        int hh = height; // / 2;
+
         // 半分の解像度で2枚のRender Textureを生成
         // buf.GetTemporaryRT(_blurredID1, hw, hh, 0, FilterMode.Bilinear);
         buf.GetTemporaryRT(_blurredID2, hw, hh, 0, FilterMode.Bilinear);
-        
+
         // // 半分にスケールダウンしてコピー
         buf.Blit(target, _resultTarget);
-        
+
         float x = _offset / width;
         float y = _offset / height;
-        
+
         buf.SetGlobalFloatArray(_weightsID, _weights);
-        
-        // 横方向のブラー
-        buf.SetGlobalVector(_offsetsID, new Vector4(x, 0, 0, 0));
-        buf.Blit(_resultTarget, _blurredID2, _material);
-        
-        // 縦方向のブラー
-        buf.SetGlobalVector(_offsetsID, new Vector4(0, y, 0, 0));
-        buf.Blit(_blurredID2, _resultTarget, _material);
-        
+
+        for (int i = 0; i < 2; i++)
+        {
+            // 横方向のブラー
+            buf.SetGlobalVector(_offsetsID, new Vector4(x, 0, 0, 0));
+            Blit(buf, _resultTarget, _blurredID2, _material);
+
+            // 縦方向のブラー
+            buf.SetGlobalVector(_offsetsID, new Vector4(0, y, 0, 0));
+            Blit(buf, _blurredID2, _resultTarget, _material);
+        }
+
         buf.SetGlobalTexture(_grabBlurTextureID, _resultTarget);
-        
-        buf.SetRenderTarget(_currentTarget);
 
         context.ExecuteCommandBuffer(buf);
         CommandBufferPool.Release(buf);
