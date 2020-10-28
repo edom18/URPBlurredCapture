@@ -78,6 +78,13 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         int width = camData.camera.scaledPixelWidth;
         int height = camData.camera.scaledPixelHeight;
 
+        // If scene view is running, the target texture won't be null.
+        // This check is skipping blur when this method is executing as SceneView.
+        if (camData.targetTexture != null)
+        {
+            return;
+        }
+        
         var target = (camData.targetTexture != null) ? new RenderTargetIdentifier(camData.targetTexture) : BuiltinRenderTextureType.CameraTarget;
 
         int hw = width; // / 2;
