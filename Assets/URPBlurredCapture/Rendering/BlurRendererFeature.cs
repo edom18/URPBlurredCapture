@@ -9,8 +9,6 @@ public class BlurRendererFeature : ScriptableRendererFeature
     [SerializeField, Range(1f, 100f)] private float _offset = 1f;
     [SerializeField, Range(10f, 1000f)] private float _blur = 100f;
     [SerializeField] private RenderPassEvent _renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
-
-    public static RenderTexture BlurredResult = null;
     
     private GrabBluredTextureRendererPass _grabBluredTexturePass = null;
 
@@ -20,10 +18,6 @@ public class BlurRendererFeature : ScriptableRendererFeature
 
         if (_grabBluredTexturePass == null)
         {
-            BlurredResult = new RenderTexture(Screen.width, Screen.height, 0);
-            BlurredResult.name = "Blurred Result";
-            BlurredResult.Create();
-            
             _grabBluredTexturePass = new GrabBluredTextureRendererPass(_shader, _renderPassEvent);
             _grabBluredTexturePass.SetParams(_offset, _blur);
             _grabBluredTexturePass.UpdateWeights();
