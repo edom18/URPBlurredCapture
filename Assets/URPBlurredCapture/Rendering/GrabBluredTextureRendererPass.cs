@@ -68,33 +68,27 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         _currentTarget = target;
     }
 
-    private RenderTextureDescriptor _descriptor;
-    public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
-    {
-        _descriptor = cameraTextureDescriptor;
-    }
-
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         CommandBuffer buf = CommandBufferPool.Get(NAME);
 
         ref CameraData camData = ref renderingData.cameraData;
         
-        // If scene view is running, the target texture won't be null.
-        // This check is skipping blur when this method is executing as SceneView.
-        if (camData.targetTexture != null)
+        if (camData.isSceneViewCamera)
         {
             return;
         }
 
+        RenderTextureDescriptor descriptor = camData.cameraTargetDescriptor;
+
         int screenCopyID = Shader.PropertyToID("_ScreenCopyTexture");
-        buf.GetTemporaryRT(screenCopyID, _descriptor, FilterMode.Bilinear);
+        buf.GetTemporaryRT(screenCopyID, descriptor, FilterMode.Bilinear);
 
-        _descriptor.width /= 2;
-        _descriptor.height /= 2;
+        descriptor.width /= 2;
+        descriptor.height /= 2;
 
-        buf.GetTemporaryRT(_blurredTempID1, _descriptor, FilterMode.Bilinear);
-        buf.GetTemporaryRT(_blurredTempID2, _descriptor, FilterMode.Bilinear);
+        buf.GetTemporaryRT(_blurredTempID1, descriptor, FilterMode.Bilinear);
+        buf.GetTemporaryRT(_blurredTempID2, descriptor, FilterMode.Bilinear);
 
         int width = camData.camera.scaledPixelWidth;
         int height = camData.camera.scaledPixelHeight;
@@ -103,7 +97,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         
         buf.SetGlobalFloatArray(_weightsID, _weights);
         
-        buf.Blit(BuiltinRenderTextureType.CameraTarget, screenCopyID);
+        buf.Blit(_currentTarget, screenCopyID);
         Blit(buf, screenCopyID, _blurredTempID1);
         buf.ReleaseTemporaryRT(screenCopyID);
         
