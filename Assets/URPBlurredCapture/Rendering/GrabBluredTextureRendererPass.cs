@@ -81,6 +81,8 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
         }
 
         RenderTextureDescriptor descriptor = XRSettings.enabled ? XRSettings.eyeTextureDesc : camData.cameraTargetDescriptor;
+        descriptor.depthBufferBits = 0;
+        
 
         int screenCopyID = Shader.PropertyToID("_ScreenCopyTexture");
         buf.GetTemporaryRT(screenCopyID, descriptor, FilterMode.Bilinear);
