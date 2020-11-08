@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.XR;
 
 public class GrabBluredTextureRendererPass : ScriptableRenderPass
 {
@@ -79,7 +80,7 @@ public class GrabBluredTextureRendererPass : ScriptableRenderPass
             return;
         }
 
-        RenderTextureDescriptor descriptor = camData.cameraTargetDescriptor;
+        RenderTextureDescriptor descriptor = XRSettings.enabled ? XRSettings.eyeTextureDesc : camData.cameraTargetDescriptor;
 
         int screenCopyID = Shader.PropertyToID("_ScreenCopyTexture");
         buf.GetTemporaryRT(screenCopyID, descriptor, FilterMode.Bilinear);
